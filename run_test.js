@@ -4,6 +4,7 @@ const through = require('through2');
 const request = require('request-promise-native');
 const _ = require('lodash');
 const http = require('http');
+const parallel = require('parallel-transform');
 
 http.globalAgent = new http.Agent({
   keepAlive: true
@@ -49,7 +50,7 @@ function percent(num, denom) {
 }
 
 
-async function run(row, _, next) {
+async function run(row, next) {
   const expected_locality = row.CITY;
 
   const requests = [ request(getPlainURL(row.LAT, row.LON)),
@@ -82,4 +83,4 @@ async function run(row, _, next) {
 
 console.log('lat,lon,expected,locality1,locality1,match1,match2');
 
-fs.createReadStream(file).pipe(parser).pipe(through.obj(run));
+fs.createReadStream(file).pipe(parser).pipe(parallel(10, run));
