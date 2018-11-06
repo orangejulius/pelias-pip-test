@@ -54,6 +54,19 @@ function percent(num, denom) {
   return Math.round(num/denom*100);
 }
 
+function getStatus(match1, match2) {
+  if (match1 == true && match2 == true ) {
+    return 'pass';
+  } else if (match1 == false && match2 == true) {
+    return 'improvement';
+  } else if (match1 == true && match2 == false) {
+    return 'regression'
+  } else if (match1 == false && match2 == false) {
+    return 'fail';
+  } else {
+    console.log('what?');
+  }
+}
 
 async function run(row, next) {
   const expected_locality = row.CITY;
@@ -79,13 +92,15 @@ async function run(row, next) {
     match2++;
   }
 
+  const status = getStatus(isMatch1, isMatch2);
+
   if (total % 100 == 0) {
     console.error(`${total} ${match1}(${percent(match1,total)}) ${match2}(${percent(match2,total)})`);
   }
-  console.log(`${row.LAT},${row.LON},${expected_locality},${locality1},${locality2},${id1},${id2},${isMatch1},${isMatch2}`);
+  console.log(`${row.LAT},${row.LON},${expected_locality},${locality1},${locality2},${id1},${id2},${status}`);
   next();
 };
 
-console.log('lat,lon,expected,locality1,locality1,id1,id2,match1,match2');
+console.log('lat,lon,expected,locality1,locality1,id1,id2,status');
 
 fs.createReadStream(file).pipe(parser).pipe(parallel(10, run));
