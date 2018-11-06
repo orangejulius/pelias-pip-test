@@ -21,12 +21,17 @@ function getPlainURL(lat, lon) {
 }
 
 function getLocalityURL(lat, lon) {
-  return `${getPlainURL(lat,lon)}?layers=locality`;
+  return `${getPlainURL(lat,lon)}?layers=locality,localadmin`;
 }
 
-function getLocalityFromResponse(response) {
+function getNameFromResponse(response) {
   const object = JSON.parse(response);
-  return _.get(object, 'locality[0].name');
+  return _.get(object, 'locality[0].name') || _.get(object, 'localadmin[0].name');
+}
+
+function getIDFromResponse(response) {
+  const object = JSON.parse(response);
+  return _.get(object, 'locality[0].id') || _.get(object, 'locality[0].id');
 }
 
 function localitiesAreEqual(loc1, loc2) {
@@ -57,10 +62,12 @@ async function run(row, next) {
                       request(getLocalityURL(row.LAT, row.LON)) ];
 
   const responses = await Promise.all(requests);
-  const locality1 = getLocalityFromResponse(responses[0]);
-  const locality2 = getLocalityFromResponse(responses[1]);
-  const isMatch1 = localitiesAreEqual(expected_locality, locality1);
-  const isMatch2 = localitiesAreEqual(expected_locality, locality2);
+  const locality1 = getNameFromResponse(responses[0]);
+  const locality2 = getNameFromResponse(responses[1]);
+  const id1       = getIDFromResponse(responses[0]);
+  const id2       = getIDFromResponse(responses[1]);
+  const isMatch1  = localitiesAreEqual(expected_locality, locality1);
+  const isMatch2  = localitiesAreEqual(expected_locality, locality2);
 
   total++;
 
@@ -75,12 +82,10 @@ async function run(row, next) {
   if (total % 100 == 0) {
     console.error(`${total} ${match1}(${percent(match1,total)}) ${match2}(${percent(match2,total)})`);
   }
-  console.log(`${row.LAT},${row.LON},${expected_locality},${locality1},${locality2},${isMatch1},${isMatch2}`);
+  console.log(`${row.LAT},${row.LON},${expected_locality},${locality1},${locality2},${id1},${id2},${isMatch1},${isMatch2}`);
   next();
 };
 
-
-
-console.log('lat,lon,expected,locality1,locality1,match1,match2');
+console.log('lat,lon,expected,locality1,locality1,id1,id2,match1,match2');
 
 fs.createReadStream(file).pipe(parser).pipe(parallel(10, run));
